@@ -62,6 +62,26 @@ def fix_character_confusions(token: str) -> str:
     return token
 
 
+def fix_numeric_context(token: str) -> str:
+    """`I4PUNE` -> `14PUNE`: a letter wedged between digits is a digit.
+
+    Only letters that are shape-identical to a digit and that sit next to a
+    digit are touched, so ordinary words are never rewritten.
+    """
+    if not any(c.isdigit() for c in token):
+        return token
+    lookalike = {"I": "1", "l": "1", "|": "1", "O": "0", "o": "0"}
+    chars = list(token)
+    for i, c in enumerate(chars):
+        if c not in lookalike:
+            continue
+        before = token[i - 1] if i else ""
+        after = token[i + 1] if i + 1 < len(token) else ""
+        if before.isdigit() or after.isdigit():
+            chars[i] = lookalike[c]
+    return "".join(chars)
+
+
 def normalise_whitespace(text: str) -> str:
     lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in text.splitlines()]
     lines = [ln for ln in lines if ln]
@@ -118,7 +138,7 @@ def postprocess(
 
     lines: dict[int, list[str]] = {}
     for w in words:
-        token = fix_character_confusions(w.text.strip())
+        token = fix_numeric_context(fix_character_confusions(w.text.strip()))
         if spell_correct and vocab:
             fixed = correct_word(token, vocab)
             if fixed != token:

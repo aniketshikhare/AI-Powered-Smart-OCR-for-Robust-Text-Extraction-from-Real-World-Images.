@@ -20,6 +20,13 @@ def test_character_confusion_fix():
     assert post.fix_character_confusions("A1") == "A1"
 
 
+def test_numeric_context_fix():
+    assert post.fix_numeric_context("I4PUNE") == "14PUNE"
+    assert post.fix_numeric_context("1O") == "10"
+    assert post.fix_numeric_context("GATE") == "GATE"
+    assert post.fix_numeric_context("HOTEL9") == "HOTEL9"
+
+
 def test_whitespace_normalisation():
     assert post.normalise_whitespace("Hello   world  ,ok\n\n\n\nnext") == "Hello world, ok\nnext"
 
