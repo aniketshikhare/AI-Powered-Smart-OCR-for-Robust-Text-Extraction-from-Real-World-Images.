@@ -83,21 +83,42 @@ python -m smart_ocr.crnn.train --steps 9000 --batch-size 64
 ```
 
 Result of the 9000-step CPU run shipped in `models/crnn.pt`: **CER 0.0000,
-100% exact-line accuracy** on held-out synthetic lines, and on the `samples/`
-scene images (via the full pipeline, one detected line at a time):
-
-| Sample | Ground truth | CRNN output | Confidence |
-|---|---|---|---|
-| clean | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 | 96.9 |
-| noisy | RECEIPT NO 4471 | RECEIPT NO 4471 | 98.6 |
-| blurred | PLATFORM NO 5 | PLATFORM NO 5 | 97.6 |
-| shadow | EXIT GATE 2 | EXIT GATE 2 | 98.6 |
-| rotated | BUS STOP AIROLI | BUS STOP / AIROLI | 98.8 |
-| hard | SHOP NO 14 PUNE | SHOP NO I4PUNE | 98.0 |
+100% exact-line accuracy** on held-out synthetic lines (see the benchmark below
+for scene images).
 
 Use it: pick "CRNN" in the web UI, send `-F engine=crnn` to `/api/ocr`, or set
 `SMART_OCR_ENGINE=crnn`. The detection module feeds it one cropped line at a
 time, which is exactly the input distribution it was trained on.
+
+## Benchmark: Tesseract vs the own CRNN
+
+```bash
+python scripts/benchmark.py                    # --engines tesseract,crnn
+```
+
+Same pipeline (preprocessing + detection + post-processing), only the
+recognition engine swapped, over `samples/`:
+
+| Sample | Ground truth | Tesseract | CRNN |
+|---|---|---|---|
+| clean | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 |
+| noisy | RECEIPT NO 4471 | RECEIPT NO 4471 | RECEIPT NO 4471 |
+| shadow | EXIT GATE 2 | EXIT GATE 2 | EXIT GATE 2 |
+| blurred | PLATFORM NO 5 | PLATFORM NO 5 | PLATFORM NO 5 |
+| rotated | BUS STOP AIROLI | BUS STOP AIROLI | BUS STOP AIROLI |
+| hard | SHOP NO 14 PUNE | SHOP NO 14 PUNE | SHOP NO I4PUNE |
+
+| Engine | Mean CER | Exact lines | Mean time/image | Mean confidence |
+|---|---|---|---|---|
+| Tesseract | 0.000 | 6/6 | 0.11 s | 95.1 |
+| CRNN (ours) | 0.022 | 5/6 | 0.12 s | 98.1 |
+
+Reading for the report: the from-scratch CRNN matches a mature engine on five of
+six real-world-style images at the same speed, and its single error (`14` read as
+`I4`, plus a lost space) is the classic digit/letter confusion of a model trained
+only on synthetic fonts — more font and spacing variety in `dataset.py`, or
+letting post-processing apply the `I`→`1` rule inside numeric tokens, is the
+natural next step.
 
 ## API
 
