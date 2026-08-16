@@ -40,7 +40,7 @@ python scripts/make_samples.py                 # writes to samples/
 ## Tests
 
 ```bash
-python -m pytest -q                            # 48 tests
+python -m pytest -q                            # 49 tests
 ```
 
 `tests/test_robustness.py` runs the whole pipeline over clean, noisy, skewed,
@@ -81,6 +81,19 @@ Train it (CPU is enough):
 pip install -r requirements-crnn.txt
 python -m smart_ocr.crnn.train --steps 9000 --batch-size 64
 ```
+
+Result of the 9000-step CPU run shipped in `models/crnn.pt`: **CER 0.0000,
+100% exact-line accuracy** on held-out synthetic lines, and on the `samples/`
+scene images (via the full pipeline, one detected line at a time):
+
+| Sample | Ground truth | CRNN output | Confidence |
+|---|---|---|---|
+| clean | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 | 96.9 |
+| noisy | RECEIPT NO 4471 | RECEIPT NO 4471 | 98.6 |
+| blurred | PLATFORM NO 5 | PLATFORM NO 5 | 97.6 |
+| shadow | EXIT GATE 2 | EXIT GATE 2 | 98.6 |
+| rotated | BUS STOP AIROLI | BUS STOP / AIROLI | 98.8 |
+| hard | SHOP NO 14 PUNE | SHOP NO I4PUNE | 98.0 |
 
 Use it: pick "CRNN" in the web UI, send `-F engine=crnn` to `/api/ocr`, or set
 `SMART_OCR_ENGINE=crnn`. The detection module feeds it one cropped line at a
