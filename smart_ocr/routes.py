@@ -66,14 +66,18 @@ def api_ocr():
     )
 
     pipeline = current_app.extensions["smart_ocr_pipeline"]
-    result = pipeline.run(
-        uploaded.path,
-        image_name=uploaded.original_name,
-        options=options,
-        detector=request.form.get("detector", "morphology"),
-        spell_correct=_bool_arg(request.form, "spell_correct"),
-        use_detection=_bool_arg(request.form, "detection"),
-    )
+    try:
+        result = pipeline.run(
+            uploaded.path,
+            image_name=uploaded.original_name,
+            options=options,
+            detector=request.form.get("detector", "morphology"),
+            spell_correct=_bool_arg(request.form, "spell_correct"),
+            use_detection=_bool_arg(request.form, "detection"),
+            engine=request.form.get("engine") or None,
+        )
+    except (FileNotFoundError, ImportError) as exc:
+        return jsonify({"error": f"recognition engine unavailable: {exc}"}), 503
 
     db = current_app.extensions["smart_ocr_db"]
     result.ocr_id = db.save_record(

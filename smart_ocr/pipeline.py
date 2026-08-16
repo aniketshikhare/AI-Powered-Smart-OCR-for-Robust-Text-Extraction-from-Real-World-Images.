@@ -25,7 +25,7 @@ class OCRPipeline:
         self.debug_dir = debug_dir
         self._dictionary = postprocessing.load_dictionary()
 
-    def _read(self, image, options, detector, spell_correct, use_detection):
+    def _read(self, image, options, detector, spell_correct, use_detection, engine):
         pre = preprocessing.preprocess(image, options)
 
         regions: list[detection.TextRegion] = []
@@ -33,13 +33,13 @@ class OCRPipeline:
             regions = detection.detect_text_regions(pre.image, method=detector)
 
         if regions:
-            rec = recognition.recognise_regions(pre.image, regions, self.engine, self.languages)
+            rec = recognition.recognise_regions(pre.image, regions, engine, self.languages)
         else:
-            rec = recognition.recognise_image(pre.image, self.engine, self.languages)
+            rec = recognition.recognise_image(pre.image, engine, self.languages)
 
         # Region-based OCR can miss text when detection fragments a noisy image.
         if not rec.words and regions:
-            rec = recognition.recognise_image(pre.image, self.engine, self.languages)
+            rec = recognition.recognise_image(pre.image, engine, self.languages)
 
         post = postprocessing.postprocess(
             rec,
@@ -62,19 +62,25 @@ class OCRPipeline:
         detector: str = "morphology",
         spell_correct: bool = True,
         use_detection: bool = True,
+        engine: str | None = None,
     ) -> OCRResult:
         started = time.perf_counter()
+        engine = engine or self.engine
         image_path = Path(image_path)
         image = upload.load_image(image_path)
         options = options or preprocessing.PreprocessOptions()
 
-        pre, regions, rec, post = self._read(image, options, detector, spell_correct, use_detection)
+        pre, regions, rec, post = self._read(
+            image, options, detector, spell_correct, use_detection, engine
+        )
 
         # Binarisation is the step most likely to destroy a hard image; when the
         # result looks weak, retry on the grayscale image and keep the better read.
         if options.threshold and post.confidence < 70:
             alt_options = replace(options, threshold=False)
-            alt = self._read(image, alt_options, detector, spell_correct, use_detection)
+            alt = self._read(
+                image, alt_options, detector, spell_correct, use_detection, engine
+            )
             if self._score(alt[3]) > self._score(post):
                 pre, regions, rec, post = alt
 

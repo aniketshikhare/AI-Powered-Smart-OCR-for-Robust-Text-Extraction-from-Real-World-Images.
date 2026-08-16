@@ -45,6 +45,10 @@ class OCREngine:
     def recognise(self, image: np.ndarray, languages: str = "eng") -> RecognitionResult:
         raise NotImplementedError
 
+    def recognise_lines(self, crops: list[np.ndarray], languages: str = "eng") -> list[RecognitionResult]:
+        """Read pre-cropped text lines. Engines that batch override this."""
+        return [self.recognise(crop, languages) for crop in crops]
+
 
 class TesseractEngine(OCREngine):
     name = "tesseract"
@@ -81,6 +85,59 @@ class TesseractEngine(OCREngine):
         return RecognitionResult(words=words, engine=self.name)
 
 
+class CRNNEngine(OCREngine):
+    """The CRNN+CTC recogniser trained from scratch in ``smart_ocr.crnn``.
+
+    It reads one text line per crop, so a whole image is first split into lines
+    by the detection module and the crops are read as a single batch.
+    """
+
+    name = "crnn"
+
+    def __init__(self, model_path: str | None = None) -> None:
+        from ..crnn.infer import CRNNRecogniser
+        from ..crnn.train import DEFAULT_MODEL_PATH
+
+        self._recogniser = CRNNRecogniser(model_path or DEFAULT_MODEL_PATH)
+
+    def recognise(self, image: np.ndarray, languages: str = "eng") -> RecognitionResult:
+        from . import detection
+
+        regions = detection.detect_text_regions(image)
+        if not regions:
+            text, conf = self._recogniser.read(image)
+            h, w = image.shape[:2]
+            return RecognitionResult(
+                words=self._split(text, conf, (0, 0, w, h), 0), engine=self.name
+            )
+        results = self.recognise_lines([r.crop(image) for r in regions], languages)
+        words = []
+        for line_id, (region, result) in enumerate(zip(regions, results)):
+            for word in result.words:
+                words.append(
+                    RecognisedWord(word.text, word.confidence, region.box, line_id)
+                )
+        return RecognitionResult(words=words, engine=self.name)
+
+    def recognise_lines(self, crops: list[np.ndarray], languages: str = "eng") -> list[RecognitionResult]:
+        readings = self._recogniser.read_batch(crops)
+        return [
+            RecognitionResult(
+                words=self._split(text, conf, (0, 0, crop.shape[1], crop.shape[0]), 0),
+                engine=self.name,
+            )
+            for crop, (text, conf) in zip(crops, readings)
+        ]
+
+    @staticmethod
+    def _split(text: str, confidence: float, box, line_id: int) -> list[RecognisedWord]:
+        """CTC output is a line; split on spaces so post-processing sees words."""
+        return [
+            RecognisedWord(token, confidence, box, line_id)
+            for token in text.split()
+        ]
+
+
 class EasyOCREngine(OCREngine):
     name = "easyocr"
 
@@ -115,6 +172,8 @@ def get_engine(name: str = "tesseract", **kwargs) -> OCREngine:
     if name not in _ENGINE_CACHE:
         if name == "easyocr":
             _ENGINE_CACHE[name] = EasyOCREngine(**kwargs)
+        elif name == "crnn":
+            _ENGINE_CACHE[name] = CRNNEngine(**kwargs)
         else:
             _ENGINE_CACHE[name] = TesseractEngine(**kwargs)
     return _ENGINE_CACHE[name]
@@ -135,13 +194,13 @@ def recognise_regions(
     which is where full-page OCR usually fails on scene images.
     """
     ocr = get_engine(engine)
+    usable = [r for r in regions if r.crop(image).size > 0]
+    crops = [
+        cv2.copyMakeBorder(r.crop(image), 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=255)
+        for r in usable
+    ]
     words: list[RecognisedWord] = []
-    for line_id, region in enumerate(regions):
-        crop = region.crop(image)
-        if crop.size == 0:
-            continue
-        crop = cv2.copyMakeBorder(crop, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=255)
-        result = ocr.recognise(crop, languages)
+    for line_id, (region, result) in enumerate(zip(usable, ocr.recognise_lines(crops, languages))):
         for word in result.words:
             wx, wy, ww, wh = word.box
             words.append(
