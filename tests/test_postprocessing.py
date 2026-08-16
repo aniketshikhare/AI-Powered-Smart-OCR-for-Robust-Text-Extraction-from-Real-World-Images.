@@ -27,6 +27,11 @@ def test_numeric_context_fix():
     assert post.fix_numeric_context("HOTEL9") == "HOTEL9"
 
 
+def test_bundled_dictionary_is_available():
+    words = post.load_dictionary(post.BUNDLED_DICTIONARY_PATH)
+    assert {"platform", "invoice", "pune"} <= words
+
+
 def test_whitespace_normalisation():
     assert post.normalise_whitespace("Hello   world  ,ok\n\n\n\nnext") == "Hello world, ok\nnext"
 

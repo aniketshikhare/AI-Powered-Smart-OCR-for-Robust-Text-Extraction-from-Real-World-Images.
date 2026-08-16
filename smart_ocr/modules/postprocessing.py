@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 DEFAULT_DICTIONARY_PATH = Path("/usr/share/dict/words")
+# Shipped so spell correction works on machines without a system word list.
+BUNDLED_DICTIONARY_PATH = Path(__file__).resolve().parent.parent / "data" / "words.txt"
 
 # Confusions are applied only inside tokens whose character class is unambiguous.
 DIGIT_TO_ALPHA = {"0": "O", "1": "I", "5": "S", "8": "B", "2": "Z"}
@@ -29,14 +31,16 @@ class PostProcessResult:
     steps: list[str] = field(default_factory=list)
 
 
-def load_dictionary(path: Path = DEFAULT_DICTIONARY_PATH, min_len: int = 3) -> set[str]:
-    if not path.exists():
-        return set()
-    words = set()
-    for line in path.read_text(errors="ignore").splitlines():
-        w = line.strip().lower()
-        if len(w) >= min_len and w.isalpha():
-            words.add(w)
+def load_dictionary(path: Path | None = None, min_len: int = 3) -> set[str]:
+    paths = [path] if path is not None else [DEFAULT_DICTIONARY_PATH, BUNDLED_DICTIONARY_PATH]
+    words: set[str] = set()
+    for candidate in paths:
+        if candidate is None or not candidate.exists():
+            continue
+        for line in candidate.read_text(errors="ignore").splitlines():
+            w = line.strip().lower()
+            if len(w) >= min_len and w.isalpha():
+                words.add(w)
     return words
 
 

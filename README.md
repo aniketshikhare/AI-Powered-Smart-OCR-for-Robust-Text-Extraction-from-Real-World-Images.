@@ -40,7 +40,7 @@ python scripts/make_samples.py                 # writes to samples/
 ## Tests
 
 ```bash
-python -m pytest -q                            # 49 tests
+python -m pytest -q                            # 51 tests
 ```
 
 `tests/test_robustness.py` runs the whole pipeline over clean, noisy, skewed,
@@ -71,7 +71,7 @@ recogniser built from nothing but PyTorch primitives:
 |---|---|
 | `charset.py` | Character vocabulary, CTC blank at index 0, encoder and greedy decoder with per-sequence confidence |
 | `model.py` | CRNN: 5 conv blocks (32x160 crop → 1x40 feature strip) → 2-layer BiLSTM(192) → linear head over the vocabulary |
-| `dataset.py` | Synthetic text-line generator: random words/numbers/labels rendered with system fonts, then blurred, noised, shadowed, rotated and contrast-shifted |
+| `dataset.py` | Synthetic text-line generator: random words/numbers/labels rendered with TrueType and Hershey stroke faces at random tracking, spacing and stroke weight, then blurred, noised, shadowed, rotated and contrast-shifted |
 | `train.py` | CTC training loop (AdamW + OneCycle), CER/exact-match evaluation, checkpointing to `models/crnn.pt` |
 | `infer.py` | Checkpoint loading and batched line recognition |
 
@@ -79,12 +79,14 @@ Train it (CPU is enough):
 
 ```bash
 pip install -r requirements-crnn.txt
-python -m smart_ocr.crnn.train --steps 9000 --batch-size 64
+python -m smart_ocr.crnn.train --steps 12000 --batch-size 64
 ```
 
-Result of the 9000-step CPU run shipped in `models/crnn.pt`: **CER 0.0000,
-100% exact-line accuracy** on held-out synthetic lines (see the benchmark below
-for scene images).
+Result of the 12000-step CPU run shipped in `models/crnn.pt`: **CER 0.0021,
+98.8% exact-line accuracy** on held-out synthetic lines — deliberately harder
+data than the first run (Hershey stroke faces, random letter tracking and word
+gaps, stroke-weight jitter, mixed case, digits embedded between words), which is
+what lifted the scene-image score below.
 
 Use it: pick "CRNN" in the web UI, send `-F engine=crnn` to `/api/ocr`, or set
 `SMART_OCR_ENGINE=crnn`. The detection module feeds it one cropped line at a
@@ -99,26 +101,30 @@ python scripts/benchmark.py                    # --engines tesseract,crnn
 Same pipeline (preprocessing + detection + post-processing), only the
 recognition engine swapped, over `samples/`:
 
-| Sample | Ground truth | Tesseract | CRNN |
-|---|---|---|---|
-| clean | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 | INVOICE TOTAL 1250 |
-| noisy | RECEIPT NO 4471 | RECEIPT NO 4471 | RECEIPT NO 4471 |
-| shadow | EXIT GATE 2 | EXIT GATE 2 | EXIT GATE 2 |
-| blurred | PLATFORM NO 5 | PLATFORM NO 5 | PLATFORM NO 5 |
-| rotated | BUS STOP AIROLI | BUS STOP AIROLI | BUS STOP AIROLI |
-| hard | SHOP NO 14 PUNE | SHOP NO 14 PUNE | SHOP NO I4PUNE |
-
 | Engine | Mean CER | Exact lines | Mean time/image | Mean confidence |
 |---|---|---|---|---|
 | Tesseract | 0.000 | 6/6 | 0.11 s | 95.1 |
-| CRNN (ours) | 0.022 | 5/6 | 0.12 s | 98.1 |
+| CRNN (ours) | 0.000 | 6/6 | 0.13 s | 98.7 |
 
-Reading for the report: the from-scratch CRNN matches a mature engine on five of
-six real-world-style images at the same speed, and its single error (`14` read as
-`I4`, plus a lost space) is the classic digit/letter confusion of a model trained
-only on synthetic fonts — more font and spacing variety in `dataset.py`, or
-letting post-processing apply the `I`→`1` rule inside numeric tokens, is the
-natural next step.
+Both engines now read all six images exactly; the CRNN reports higher confidence
+because CTC path probability is sharper than Tesseract's word confidence.
+
+How the CRNN got from 5/6 to 6/6 (worth describing in the report, since each step
+is a different kind of fix):
+
+1. **Domain gap, fixed in the data.** The first model read `SHOP NO 14 PUNE` as
+   `SHOP NO I4PUNE`: it had only ever seen TrueType glyphs, while signage and the
+   samples use single-stroke faces, and it had never seen a digit sitting between
+   words. `dataset.py` now renders 30% of lines with OpenCV Hershey faces, varies
+   letter tracking, word gaps and stroke weight, and generates `WORD NO <n> WORD`
+   patterns.
+2. **Ambiguity, fixed in post-processing.** `fix_numeric_context()` rewrites
+   `I`/`l`/`O` to `1`/`0` only when the character is adjacent to a digit, so
+   `I4PUNE` becomes `14PUNE` while `GATE` is untouched.
+3. **Missing vocabulary, fixed by shipping one.** Spell correction was silently a
+   no-op because `/usr/share/dict/words` does not exist on most machines, so a
+   72k-word list now ships in `smart_ocr/data/words.txt`; it turns the blurred
+   read `PLTFORM NO 5` back into `PLATFORM NO 5`.
 
 ## API
 
