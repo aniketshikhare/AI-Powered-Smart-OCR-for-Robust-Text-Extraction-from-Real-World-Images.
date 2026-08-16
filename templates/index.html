@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+  <div class="card">
+    <h2>1. Upload image</h2>
+    <form id="ocr-form">
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="image-input" name="image" accept="image/*" hidden>
+        <span id="dropzone-text">Click or drop an image here (PNG, JPG, BMP, TIFF, WEBP)</span>
+        <img id="preview" alt="" hidden>
+      </label>
+
+      <h2>2. Preprocessing options</h2>
+      <div class="options">
+        <label><input type="checkbox" name="denoise" checked> Noise removal</label>
+        <label><input type="checkbox" name="contrast" checked> Contrast (CLAHE)</label>
+        <label><input type="checkbox" name="sharpen" checked> Sharpen</label>
+        <label><input type="checkbox" name="deskew" checked> Deskew</label>
+        <label><input type="checkbox" name="threshold" checked> Threshold</label>
+        <label><input type="checkbox" name="perspective"> Perspective fix</label>
+        <label><input type="checkbox" name="detection" checked> Text detection</label>
+        <label><input type="checkbox" name="spell_correct" checked> Spell correction</label>
+      </div>
+
+      <label class="select">Detector
+        <select name="detector">
+          <option value="morphology">Morphological gradient</option>
+          <option value="mser">MSER</option>
+        </select>
+      </label>
+
+      <button type="submit" id="submit-btn">Extract text</button>
+      <p class="error" id="error" hidden></p>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>3. Result</h2>
+    <div id="status" class="status">Waiting for an image…</div>
+    <div id="metrics" class="metrics" hidden>
+      <div><span id="m-conf">–</span><small>Confidence</small></div>
+      <div><span id="m-words">–</span><small>Words</small></div>
+      <div><span id="m-regions">–</span><small>Text regions</small></div>
+      <div><span id="m-time">–</span><small>Time</small></div>
+    </div>
+    <textarea id="output" rows="16" placeholder="Extracted text will appear here…"></textarea>
+    <div class="actions">
+      <button type="button" id="copy-btn">Copy</button>
+      <button type="button" id="download-btn">Download .txt</button>
+      <button type="button" id="json-btn">Download .json</button>
+    </div>
+    <details id="details" hidden>
+      <summary>Pipeline details</summary>
+      <pre id="details-body"></pre>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Recent extractions</h2>
+  <table class="table">
+    <thead><tr><th>OCR ID</th><th>Image</th><th>Confidence</th><th>Date &amp; time</th><th></th></tr></thead>
+    <tbody id="history-body">
+      {% for r in history %}
+      <tr>
+        <td>{{ r.ocr_id }}</td>
+        <td>{{ r.image_name }}</td>
+        <td>{{ '%.1f'|format(r.confidence_score) }}%</td>
+        <td>{{ r.created_at.replace('T', ' ') }}</td>
+        <td><a href="{{ url_for('main.download', ocr_id=r.ocr_id, fmt='txt') }}">txt</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No extractions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

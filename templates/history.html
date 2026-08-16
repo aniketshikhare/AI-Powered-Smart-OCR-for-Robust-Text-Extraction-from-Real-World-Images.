@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}History – Smart OCR{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Extraction history</h2>
+  <table class="table">
+    <thead>
+      <tr><th>OCR ID</th><th>User ID</th><th>Image name</th><th>Extracted text</th><th>Confidence</th><th>Date &amp; time</th><th>Export</th></tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.ocr_id }}</td>
+        <td>{{ r.user_id }}</td>
+        <td>{{ r.image_name }}</td>
+        <td class="snippet">{{ r.extracted_text[:120] }}{% if r.extracted_text|length > 120 %}…{% endif %}</td>
+        <td>{{ '%.1f'|format(r.confidence_score) }}%</td>
+        <td>{{ r.created_at.replace('T', ' ') }}</td>
+        <td>
+          <a href="{{ url_for('main.download', ocr_id=r.ocr_id, fmt='txt') }}">txt</a> /
+          <a href="{{ url_for('main.download', ocr_id=r.ocr_id, fmt='json') }}">json</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No records stored yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

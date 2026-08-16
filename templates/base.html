@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Smart OCR{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">OCR</span>
+      <div>
+        <h1>AI-Powered Smart OCR</h1>
+        <p>Robust text extraction from real-world images</p>
+      </div>
+    </div>
+    <nav>
+      <a href="{{ url_for('main.index') }}">Extract</a>
+      <a href="{{ url_for('main.history') }}">History</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer>Modules: Upload &rarr; Preprocessing &rarr; Detection &rarr; Recognition &rarr; Post-Processing &rarr; Result</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
