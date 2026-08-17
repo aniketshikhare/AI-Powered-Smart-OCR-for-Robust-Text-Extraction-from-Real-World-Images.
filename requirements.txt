@@ -1,0 +1,28 @@
+# Core OCR dependencies
+easyocr==1.7.1
+torch==2.1.0
+torchvision==0.16.0
+opencv-python==4.8.1.78
+Pillow==10.1.0
+numpy==1.24.3
+
+# Image processing
+scikit-image==0.22.0
+imutils==0.5.4
+
+# Web framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Werkzeug==3.0.1
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+matplotlib==3.8.2
+
+# Optional: Additional OCR engines
+pytesseract==0.3.10
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0

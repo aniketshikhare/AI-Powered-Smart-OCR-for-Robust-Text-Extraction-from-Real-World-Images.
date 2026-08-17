@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Smart OCR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .batch-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .options-section {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .options-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .option-group {
+            margin-bottom: 15px;
+        }
+
+        .option-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        select, input[type="checkbox"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        select {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .result-section {
+            display: none;
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .extracted-text {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .upload-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 AI-Powered Smart OCR</h1>
+        <p class="subtitle">Robust Text Extraction from Real-World Images</p>
+
+        <div class="upload-section">
+            <div class="upload-icon">📁</div>
+            <h2>Upload Your Image</h2>
+            <p style="color: #666; margin: 10px 0;">Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF, WEBP</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+            <button class="upload-btn batch-btn" onclick="document.getElementById('fileInput').click()">Batch Upload</button>
+        </div>
+
+        <div class="options-section">
+            <h3>⚙️ Processing Options</h3>
+            <div class="option-group">
+                <label for="languageSelect">Language:</label>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ar">Arabic</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <label>
+                    <input type="checkbox" id="gpuCheckbox" checked> Use GPU acceleration (if available)
+                </label>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your image... This may take a few moments.</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="result-section" id="resultSection">
+            <h3>📊 Extraction Results</h3>
+            <div class="result-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="confidenceValue">0%</div>
+                    <div class="stat-label">Average Confidence</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="detectionsValue">0</div>
+                    <div class="stat-label">Text Detections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="engineValue">-</div>
+                    <div class="stat-label">OCR Engine</div>
+                </div>
+            </div>
+            <h4>Extracted Text:</h4>
+            <div class="extracted-text" id="extractedText"></div>
+            <button class="copy-btn" onclick="copyText()">📋 Copy Text</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('resultSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const languageSelect = document.getElementById('languageSelect');
+        const gpuCheckbox = document.getElementById('gpuCheckbox');
+
+        fileInput.addEventListener('change', handleFileUpload);
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading
+            loading.classList.add('active');
+            resultSection.classList.remove('active');
+            errorMessage.classList.remove('active');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('languages', languageSelect.value);
+            formData.append('use_gpu', gpuCheckbox.checked);
+
+            try {
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.classList.add('active');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function displayResults(data) {
+            // Update stats
+            document.getElementById('confidenceValue').textContent = 
+                (data.average_confidence * 100).toFixed(1) + '%';
+            document.getElementById('detectionsValue').textContent = 
+                data.total_detections;
+            
+            // Determine engine used
+            let engine = 'EasyOCR';
+            if (data.results && data.results.length > 0) {
+                engine = data.results[0].engine || 'EasyOCR';
+            }
+            document.getElementById('engineValue').textContent = engine;
+
+            // Display extracted text
+            document.getElementById('extractedText').textContent = data.full_text;
+
+            // Show results
+            resultSection.classList.add('active');
+        }
+
+        function copyText() {
+            const text = document.getElementById('extractedText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Text copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
