@@ -7,6 +7,7 @@ import argparse
 import sys
 import json
 import csv
+import numpy as np
 from pathlib import Path
 from typing import List
 import logging
@@ -19,6 +20,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def convert_to_serializable(obj):
+    """Convert numpy types to regular Python types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_serializable(item) for item in obj]
+    return obj
+
 def process_single_image(args):
     """Process a single image file"""
     processor = OCRProcessor(languages=args.languages.split(','), use_gpu=args.gpu)
@@ -29,7 +44,7 @@ def process_single_image(args):
         output_path = Path(args.output)
         if output_path.suffix == '.json':
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(result, f, indent=2, ensure_ascii=False)
+                json.dump(convert_to_serializable(result), f, indent=2, ensure_ascii=False)
         elif output_path.suffix == '.txt':
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(result['full_text'])
@@ -87,7 +102,7 @@ def process_batch(args):
         output_path = Path(args.output)
         if output_path.suffix == '.json':
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
+                json.dump(convert_to_serializable(results), f, indent=2, ensure_ascii=False)
         elif output_path.suffix == '.csv':
             with open(output_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.writer(f)
@@ -96,8 +111,8 @@ def process_batch(args):
                     writer.writerow([
                         result.get('image_path', ''),
                         result.get('full_text', ''),
-                        result.get('average_confidence', 0),
-                        result.get('total_detections', 0),
+                        float(convert_to_serializable(result.get('average_confidence', 0))),
+                        int(convert_to_serializable(result.get('total_detections', 0))),
                         'error' not in result
                     ])
         else:

@@ -40,6 +40,20 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ocr_processor = None
 
 
+def convert_to_serializable(obj):
+    """Convert numpy types to regular Python types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_serializable(item) for item in obj]
+    return obj
+
 def get_ocr_processor(languages=None, use_gpu=True):
     """Get or create OCR processor instance"""
     global ocr_processor
@@ -118,7 +132,7 @@ def extract_text():
         result['timestamp'] = datetime.now().isoformat()
         result['success'] = 'error' not in result
         
-        return jsonify(result)
+        return jsonify(convert_to_serializable(result))
         
     except Exception as e:
         logger.error(f"Error processing request: {e}")
@@ -177,12 +191,12 @@ def batch_extract():
                 except:
                     pass
         
-        return jsonify({
+        return jsonify(convert_to_serializable({
             'total_files': len(results),
             'successful': sum(1 for r in results if r['success']),
             'failed': sum(1 for r in results if not r['success']),
             'results': results
-        })
+        }))
         
     except Exception as e:
         logger.error(f"Error processing batch request: {e}")
