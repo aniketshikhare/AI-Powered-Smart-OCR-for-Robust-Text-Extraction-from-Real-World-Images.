@@ -37,32 +37,29 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Project specific
-data/uploads/*
-!data/uploads/.gitkeep
-data/images/*
-!data/images/.gitkeep
-data/results/*
-!data/results/.gitkeep
-data/cache/*
-!data/cache/.gitkeep
-models/*
-!models/.gitkeep
+# Git
+.git/
+.gitignore
 
-# Logs
-*.log
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# Environment variables
-.env
-.env.local
+# Documentation
+README.md
+docs/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pytest
+# Tests
+tests/
 .pytest_cache/
 .coverage
-htmlcov/
 
-# EasyOCR models
+# Temporary files
+data/uploads/*
+data/results/*
+!data/uploads/.gitkeep
+!data/results/.gitkeep
+
+# EasyOCR models (will be downloaded in container)
 .EasyOCR/

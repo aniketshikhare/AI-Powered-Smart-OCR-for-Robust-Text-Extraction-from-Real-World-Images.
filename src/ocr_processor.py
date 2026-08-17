@@ -12,6 +12,7 @@ import imutils
 from typing import List, Dict, Tuple, Optional
 import logging
 from pathlib import Path
+from performance_optimizer import PerformanceOptimizer, MemoryOptimizer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,18 +24,27 @@ class OCRProcessor:
     Advanced OCR processor with multiple engines and preprocessing capabilities
     """
     
-    def __init__(self, languages: List[str] = None, use_gpu: bool = True):
+    def __init__(self, languages: List[str] = None, use_gpu: bool = True, 
+                 enable_cache: bool = True, enable_memory_opt: bool = False):
         """
         Initialize the OCR processor
         
         Args:
             languages: List of language codes (e.g., ['en', 'hi'])
             use_gpu: Whether to use GPU acceleration
+            enable_cache: Whether to enable result caching
+            enable_memory_opt: Whether to enable memory optimization
         """
         self.languages = languages or ['en']
         self.use_gpu = use_gpu
         self.easyocr_reader = None
         self._initialize_engines()
+        
+        # Performance optimization
+        self.performance_optimizer = PerformanceOptimizer(enable_cache=enable_cache)
+        self.memory_optimizer = MemoryOptimizer() if enable_memory_opt else None
+        self.enable_cache = enable_cache
+        self.enable_memory_opt = enable_memory_opt
         
     def _initialize_engines(self):
         """Initialize OCR engines"""
@@ -238,16 +248,39 @@ class OCRProcessor:
             'languages': self.languages
         }
     
-    def process_image_file(self, image_path: str) -> Dict:
+    def process_image_file(self, image_path: str, options: Dict = None) -> Dict:
         """
         Process an image file and extract text
         
         Args:
             image_path: Path to the image file
+            options: Dictionary of processing options
             
         Returns:
             Dictionary containing extracted text and metadata
         """
+        options = options or {}
+        
+        # Check cache first
+        if self.enable_cache:
+            cached_result = self.performance_optimizer.get_cached_result(
+                image_path, tuple(self.languages), options
+            )
+            if cached_result:
+                return cached_result
+        
+        # Memory optimization check
+        if self.enable_memory_opt and self.memory_optimizer:
+            if not self.memory_optimizer.can_process_image(image_path):
+                logger.warning(f"Memory constraints prevent processing {image_path}")
+                return {
+                    'error': 'Memory constraints prevent processing',
+                    'results': [],
+                    'full_text': '',
+                    'average_confidence': 0.0
+                }
+            self.memory_optimizer.allocate_memory(image_path)
+        
         try:
             # Read image
             image = cv2.imread(image_path)
@@ -259,6 +292,12 @@ class OCRProcessor:
             result['image_path'] = image_path
             result['image_size'] = image.shape[:2]
             
+            # Cache the result
+            if self.enable_cache and 'error' not in result:
+                self.performance_optimizer.cache_result(
+                    image_path, tuple(self.languages), options, result
+                )
+            
             return result
             
         except Exception as e:
@@ -269,6 +308,10 @@ class OCRProcessor:
                 'full_text': '',
                 'average_confidence': 0.0
             }
+        finally:
+            # Free memory
+            if self.enable_memory_opt and self.memory_optimizer:
+                self.memory_optimizer.free_memory(image_path)
     
     def batch_process(self, image_paths: List[str]) -> List[Dict]:
         """

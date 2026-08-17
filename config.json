@@ -1,0 +1,33 @@
+{
+  "ocr": {
+    "default_languages": ["en"],
+    "use_gpu": false,
+    "enable_cache": true,
+    "enable_memory_optimization": false,
+    "max_memory_mb": 4096,
+    "cache_ttl_hours": 24
+  },
+  "processing": {
+    "max_workers": 4,
+    "batch_size": 10,
+    "timeout_seconds": 300
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "max_file_size_mb": 16,
+    "allowed_extensions": ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp"]
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/ocr_service.log"
+  },
+  "paths": {
+    "upload_dir": "data/uploads",
+    "cache_dir": "data/cache",
+    "models_dir": "models",
+    "results_dir": "data/results"
+  }
+}

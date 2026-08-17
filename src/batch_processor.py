@@ -25,7 +25,8 @@ class BatchProcessor:
     Advanced batch processing for multiple images
     """
     
-    def __init__(self, languages: List[str] = None, use_gpu: bool = True, max_workers: int = 4):
+    def __init__(self, languages: List[str] = None, use_gpu: bool = True, max_workers: int = 4,
+                 enable_cache: bool = True, enable_memory_opt: bool = False):
         """
         Initialize batch processor
         
@@ -33,11 +34,18 @@ class BatchProcessor:
             languages: List of language codes
             use_gpu: Whether to use GPU acceleration
             max_workers: Maximum number of parallel workers
+            enable_cache: Whether to enable result caching
+            enable_memory_opt: Whether to enable memory optimization
         """
         self.languages = languages or ['en']
         self.use_gpu = use_gpu
         self.max_workers = max_workers
-        self.processor = OCRProcessor(languages=languages, use_gpu=use_gpu)
+        self.processor = OCRProcessor(
+            languages=languages, 
+            use_gpu=use_gpu,
+            enable_cache=enable_cache,
+            enable_memory_opt=enable_memory_opt
+        )
         
     def process_directory(self, directory: str, 
                          output_dir: Optional[str] = None,
