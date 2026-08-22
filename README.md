@@ -20,17 +20,37 @@ Final-year project implementation of the synopsis. The system is a complete web-
 
 ## Setup on Windows/Linux
 
+**Recommended Python version: 3.11 (64-bit).** Python 3.14 is not recommended for this project because the pinned NumPy version and the optional CRNN/PyTorch stack may not provide compatible Windows wheels.
+
 Install Tesseract OCR and make sure the `tesseract` command is available in PATH.
 
+### Windows PowerShell
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python --version
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python run.py
+```
+
+The `python --version` command should report Python 3.11.x before installing dependencies.
+
+### Linux/macOS
+
 ```bash
-python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# Linux/macOS: source .venv/bin/activate
+python3.11 -m venv .venv
+source .venv/bin/activate
+python --version
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 python run.py
 ```
 
 Open `http://localhost:5000`.
+
+If Tesseract is missing, the web API now returns a clear setup error instead of an unhandled server error.
 
 Optional CRNN engine:
 
