@@ -13,6 +13,7 @@ from flask import (
     send_from_directory,
 )
 
+from .modules.evaluation import evaluate
 from .modules.preprocessing import PreprocessOptions
 from .modules.upload import UploadError, save_upload
 
@@ -89,7 +90,25 @@ def api_ocr():
 
     payload = result.to_dict()
     payload["quality_label"] = result.quality_label
+
+    # Optional ground truth lets a project demonstrator prove extraction
+    # accuracy instead of treating OCR confidence as correctness.
+    ground_truth = request.form.get("ground_truth", "").strip()
+    if ground_truth:
+        payload["evaluation"] = evaluate(ground_truth, result.text).to_dict()
+
     return jsonify(payload)
+
+
+@bp.post("/api/evaluate")
+def api_evaluate():
+    """Compare supplied OCR text against known ground truth."""
+    data = request.get_json(silent=True) or request.form
+    expected = str(data.get("ground_truth", "")).strip()
+    predicted = str(data.get("predicted_text", ""))
+    if not expected:
+        return jsonify({"error": "ground_truth is required."}), 400
+    return jsonify(evaluate(expected, predicted).to_dict())
 
 
 @bp.get("/api/records")
