@@ -9,6 +9,7 @@ const output = document.getElementById("output");
 const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const metrics = document.getElementById("metrics");
+const evaluation = document.getElementById("evaluation");
 const details = document.getElementById("details");
 const submitBtn = document.getElementById("submit-btn");
 
@@ -62,6 +63,7 @@ form.addEventListener("submit", async (e) => {
 
   submitBtn.disabled = true;
   statusEl.textContent = "Running pipeline: preprocessing → detection → recognition → post-processing…";
+  evaluation.hidden = true;
 
   try {
     const res = await fetch("/api/ocr", { method: "POST", body: data });
@@ -86,6 +88,16 @@ function renderResult(r) {
   document.getElementById("m-regions").textContent = r.region_count;
   document.getElementById("m-time").textContent = `${r.elapsed_ms} ms`;
   metrics.hidden = false;
+
+  if (r.evaluation) {
+    const e = r.evaluation;
+    document.getElementById("m-char-acc").textContent = `${e.character_accuracy.toFixed(1)}%`;
+    document.getElementById("m-word-acc").textContent = `${e.word_accuracy.toFixed(1)}%`;
+    document.getElementById("m-cer").textContent = `${e.cer.toFixed(1)}%`;
+    document.getElementById("m-wer").textContent = `${e.wer.toFixed(1)}%`;
+    evaluation.hidden = false;
+  }
+
   details.hidden = false;
   document.getElementById("details-body").textContent = JSON.stringify(
     {
@@ -94,6 +106,7 @@ function renderResult(r) {
       skew_angle: r.skew_angle,
       removed_tokens: r.removed_tokens,
       corrections: r.corrections,
+      evaluation: r.evaluation || null,
     },
     null,
     2
