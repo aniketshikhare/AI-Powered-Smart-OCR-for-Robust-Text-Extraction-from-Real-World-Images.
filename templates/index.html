@@ -36,6 +36,10 @@
         </select>
       </label>
 
+      <label class="select">Ground-truth text (optional)
+        <textarea id="ground-truth" name="ground_truth" rows="4" placeholder="Paste the correct text here to calculate CER, WER and accuracy"></textarea>
+      </label>
+
       <button type="submit" id="submit-btn">Extract text</button>
       <p class="error" id="error" hidden></p>
     </form>
@@ -49,6 +53,12 @@
       <div><span id="m-words">–</span><small>Words</small></div>
       <div><span id="m-regions">–</span><small>Text regions</small></div>
       <div><span id="m-time">–</span><small>Time</small></div>
+    </div>
+    <div id="evaluation" class="metrics" hidden>
+      <div><span id="m-char-acc">–</span><small>Character accuracy</small></div>
+      <div><span id="m-word-acc">–</span><small>Word accuracy</small></div>
+      <div><span id="m-cer">–</span><small>CER</small></div>
+      <div><span id="m-wer">–</span><small>WER</small></div>
     </div>
     <textarea id="output" rows="16" placeholder="Extracted text will appear here…"></textarea>
     <div class="actions">
