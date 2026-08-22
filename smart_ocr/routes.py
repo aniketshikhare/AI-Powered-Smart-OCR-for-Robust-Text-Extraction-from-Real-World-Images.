@@ -77,8 +77,15 @@ def api_ocr():
             use_detection=_bool_arg(request.form, "detection"),
             engine=request.form.get("engine") or None,
         )
-    except (FileNotFoundError, ImportError) as exc:
-        return jsonify({"error": f"recognition engine unavailable: {exc}"}), 503
+    except ImportError as exc:
+        return jsonify({"error": f"Recognition engine dependency is missing: {exc}"}), 503
+    except OSError:
+        # pytesseract raises TesseractNotFoundError (an OSError subclass) when
+        # the Windows Tesseract executable is missing or not on PATH.
+        return jsonify({
+            "error": "Tesseract OCR is not installed or is not available on PATH. "
+                     "Install Tesseract OCR and restart the terminal."
+        }), 503
 
     db = current_app.extensions["smart_ocr_db"]
     result.ocr_id = db.save_record(
